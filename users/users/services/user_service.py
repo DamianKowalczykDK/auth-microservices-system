@@ -6,6 +6,7 @@ from users.services.email_service import EmailService
 from users.core.security import get_password_hash, verify_password
 from users.core.config import settings
 from datetime import datetime, timedelta, timezone
+from fastapi import BackgroundTasks
 import uuid
 import pyotp
 import base64
@@ -17,7 +18,7 @@ class UserService:
         self.repository = repository
         self.email = email
 
-    async def create_user(self, user_create: UserCreate) -> User:
+    async def create_user(self, user_create: UserCreate, bg_tasks: BackgroundTasks) -> User:
 
         if await self.repository.get_by_email(user_create.email):
             raise ConflictException("Email already exists")
@@ -35,7 +36,7 @@ class UserService:
         )
 
         created_user = await self.repository.create(user)
-        await self.email.send_activation_email(user.email, activation_code)
+        bg_tasks.add_task(self.email.send_activation_email, user.email, activation_code)
         return created_user
 
     async def activate_user(self, code: str) -> User:
@@ -52,7 +53,7 @@ class UserService:
         user.activate()
         return await self.repository.save(user)
 
-    async def resend_activation_code(self, identifier: str) -> User:
+    async def resend_activation_code(self, identifier: str, bg_tasks: BackgroundTasks) -> User:
         user = await self.repository.get_by_identifier(identifier)
         if not user:
             raise NotFoundException("User not found")
@@ -63,7 +64,7 @@ class UserService:
         user.update_activation_code()
         await self.repository.save(user)
 
-        await self.email.send_activation_email(user.email, user.activation_code)
+        bg_tasks.add_task(self.email.send_activation_email, user.email, user.activation_code)
 
         return user
 
