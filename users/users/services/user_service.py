@@ -68,4 +68,25 @@ class UserService:
 
         return user
 
+    async def verify_credentials(self, user_login: UserLogin) -> User:
+        user = await self.repository.get_active_by_identifier(user_login.identifier)
+        if not user or not verify_password(user_login.password, user.password_hash):
+            raise ValidationException("Invalid credentials")
+        return user
+
+    async def forgot_password(self, identifier: str, bg_tasks: BackgroundTasks) -> None:
+        user = await self.repository.get_active_by_identifier(identifier)
+        if not user:
+            return
+
+        user.set_reset_password_token(settings.RESET_PASSWORD_EXPIRATION_MINUTES)
+        await self.repository.save(user)
+
+        html = f"<p>Reset token: {user.reset_password_token}</p>"
+
+        bg_tasks.add_task(self.email.send_email, user.email, "Password Reset", html)
+
+
+
+
 
