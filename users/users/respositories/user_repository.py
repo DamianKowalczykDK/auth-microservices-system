@@ -15,7 +15,7 @@ class UserRepository:
     async def get_active_by_identifier(self, identifier: str) -> User | None:
         return await User.find_one(
             Or(User.email == identifier, User.username == identifier),
-            User.active == True
+            User.is_active == True
         )
 
     async def get_by_identifier(self, identifier: str) -> User | None:
