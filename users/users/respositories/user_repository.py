@@ -19,7 +19,7 @@ class UserRepository:
         )
 
     async def get_by_identifier(self, identifier: str) -> User | None:
-        return await User.find_one(User.email == identifier, User.username == identifier)
+        return await User.find_one(Or(User.email == identifier, User.username == identifier))
 
     async def get_by_activation_code(self, code: str) -> User | None:
         return await User.find_one(User.activation_code == code)
