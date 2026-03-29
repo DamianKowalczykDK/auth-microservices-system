@@ -15,7 +15,7 @@ class User(Document):
 
     password_hash: str
     role: Literal["user", "admin"] = "user"
-    is_active: bool
+    is_active: bool = False
 
     activation_code: Indexed(str, unique=True) # type: ignore
     activation_created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
