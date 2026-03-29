@@ -1,11 +1,11 @@
-from datetime import datetime, timedelta, timezone
+from users.core.exceptions import ValidationException, ApiException, NotFoundException, ConflictException
 from users.domain.schemas import UserCreate, UserLogin
 from users.domain.models import User
 from users.respositories.user_repository import UserRepository
 from users.services.email_service import EmailService
 from users.core.security import get_password_hash, verify_password
 from users.core.config import settings
-from users.core.exceptions import ValidationException, ApiException, NotFoundException, ConflictException
+from datetime import datetime, timedelta, timezone
 import uuid
 import pyotp
 import base64
@@ -37,3 +37,34 @@ class UserService:
         created_user = await self.repository.create(user)
         await self.email.send_activation_email(user.email, activation_code)
         return created_user
+
+    async def activate_user(self, code: str) -> User:
+        user = await self.repository.get_by_activation_code(code)
+        if not user:
+            raise NotFoundException("Invalid activation code")
+
+        expiration_minutes = settings.USER_ACTIVATION_EXPIRATION_MINUTES
+        now_utc = datetime.now(timezone.utc)
+
+        if user.activation_created_at + timedelta(minutes=expiration_minutes) < now_utc:
+            raise ValidationException("Activation code expired")
+
+        user.activate()
+        return await self.repository.save(user)
+
+    async def resend_activation_code(self, identifier: str) -> User:
+        user = await self.repository.get_by_identifier(identifier)
+        if not user:
+            raise NotFoundException("User not found")
+
+        if user.is_active:
+            raise ValidationException("User already activated")
+
+        user.update_activation_code()
+        await self.repository.save(user)
+
+        await self.email.send_activation_email(user.email, user.activation_code)
+
+        return user
+
+
