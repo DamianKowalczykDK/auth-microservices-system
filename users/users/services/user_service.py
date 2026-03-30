@@ -1,5 +1,5 @@
 from users.core.exceptions import ValidationException, ApiException, NotFoundException, ConflictException
-from users.domain.schemas import UserCreate, UserLogin
+from users.domain.schemas import UserCreate, UserLogin, MfaSetup
 from users.domain.models import User
 from users.respositories.user_repository import UserRepository
 from users.services.email_service import EmailService
@@ -85,6 +85,61 @@ class UserService:
         html = f"<p>Reset token: {user.reset_password_token}</p>"
 
         bg_tasks.add_task(self.email.send_email, user.email, "Password Reset", html)
+
+
+    async def reset_password(self, token: str, new_password: str) -> None:
+        user = await self.repository.get_by_reset_token(token)
+        if not user or not user.reset_password_token:
+            raise NotFoundException("Invalid token")
+
+        if user.reset_password_expires_at < datetime.now(timezone.utc):
+            raise ValidationException("Reset token password expired")
+
+        user.password_hash = get_password_hash(new_password)
+        user.reset_password_token = None
+        user.reset_password_expires_at = None
+
+        await self.repository.save(user)
+
+    async def enable_mfa(self, user_id: str) -> MfaSetup:
+        user = await self.repository.get_by_id(user_id)
+        if not user:
+            raise NotFoundException("User not found")
+
+        secret = pyotp.random_base32()
+        user.mfa_secret = secret
+        await self.repository.save(user)
+
+        return self._generate_mfa_secret(user)
+
+
+    def _generate_mfa_secret(self, user: User) -> MfaSetup:
+        if not user.mfa_secret:
+            raise ValidationException("Mfa secret not initialized")
+        totp = pyotp.TOTP(user.mfa_secret)
+
+        provisioning_uri = totp.provisioning_uri(
+            name=user.email,
+            issuer_name="FastAPI Security"
+        )
+
+        qr = qrcode.QRCode(box_size=10, border=5)
+        qr.add_data(provisioning_uri)
+        qr.make(fit=True)
+
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffer = io.BytesIO()
+        img.save(buffer, format="PNG")
+
+        qr_code_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+        return MfaSetup(
+            user_id=str(user.id),
+            provisioning_uri=provisioning_uri,
+            qr_code_base64=qr_code_base64
+        )
+
+
 
 
 
