@@ -95,6 +95,7 @@ async def enable_mfa(user_id: Annotated[str, Query(description="User ID")], serv
 
 @router.patch(
     "/mfa/disable",
+    status_code=status.HTTP_200_OK,
     summary=f"Disable MFA for user"
 )
 async def disable_mfa(user_id: Annotated[str, Query(description="User ID")], service: UserServiceDep) -> None:
@@ -107,3 +108,12 @@ async def disable_mfa(user_id: Annotated[str, Query(description="User ID")], ser
 )
 async def delete_user(identifier: Annotated[str, Query(description="Username or email")], service: UserServiceDep) -> None:
     await service.delete_user(identifier)
+
+@router.get(
+    "/",
+    response_model=UserRead,
+    status_code=status.HTTP_200_OK,
+    summary="Get user by id"
+)
+async def get_user(user_id: Annotated[str, Query(description="The database ID of the user")], service: UserServiceDep) -> UserRead:
+    return await service.get_user_by_id(user_id)

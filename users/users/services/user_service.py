@@ -130,6 +130,13 @@ class UserService:
         await self.repository.delete(user)
 
 
+    async def get_user_by_id(self, user_id: str) -> User:
+        user = await self.repository.get_by_id(user_id)
+        if not user:
+            raise NotFoundException("User not found")
+        return user
+
+
     def _generate_mfa_secret(self, user: User) -> MfaSetup:
         if not user.mfa_secret:
             raise ValidationException("Mfa secret not initialized")
