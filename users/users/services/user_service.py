@@ -89,7 +89,7 @@ class UserService:
 
     async def reset_password(self, token: str, new_password: str) -> None:
         user = await self.repository.get_by_reset_token(token)
-        if not user or not user.reset_password_token:
+        if not user or not user.reset_password_expires_at:
             raise NotFoundException("Invalid token")
 
         if user.reset_password_expires_at < datetime.now(timezone.utc):
@@ -111,6 +111,23 @@ class UserService:
         await self.repository.save(user)
 
         return self._generate_mfa_secret(user)
+
+    async def disable_mfa(self, user_id: str) -> None:
+        user = await self.repository.get_by_id(user_id)
+        if not user:
+            raise NotFoundException("User not found")
+
+        if not user.mfa_secret:
+            raise ValidationException("User has no mfa secret")
+        user.mfa_secret = None
+        await self.repository.save(user)
+
+
+    async def delete_user(self, identifier: str) -> None:
+        user = await self.repository.get_by_identifier(identifier)
+        if not user:
+            raise NotFoundException("User not found")
+        await self.repository.delete(user)
 
 
     def _generate_mfa_secret(self, user: User) -> MfaSetup:
