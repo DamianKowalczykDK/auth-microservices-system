@@ -4,7 +4,9 @@ from users.api.dependencies import UserServiceDep
 from users.domain.schemas import (
     UserCreate,
     UserLogin,
-    UserRead, UserResetPassword, MfaSetup,
+    UserRead,
+    UserResetPassword,
+    MfaSetup
 )
 
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -90,6 +92,13 @@ async def reset_password(payload: UserResetPassword, service: UserServiceDep) ->
 )
 async def enable_mfa(user_id: Annotated[str, Query(description="User ID")], service: UserServiceDep) -> MfaSetup:
     return await service.enable_mfa(user_id)
+
+@router.patch(
+    "/mfa/disable",
+    summary=f"Disable MFA for user"
+)
+async def disable_mfa(user_id: Annotated[str, Query(description="User ID")], service: UserServiceDep) -> None:
+    await service.disable_mfa(user_id)
 
 @router.delete(
     "/",
