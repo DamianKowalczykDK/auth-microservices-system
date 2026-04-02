@@ -20,7 +20,6 @@ class TokenPair(BaseModel):
 class MfaRequired(BaseModel):
     mfa_required: bool = True
     user_id: str
-    mfa_secret: str | None = None
 
 class MfaVerify(BaseModel):
     user_id: str
