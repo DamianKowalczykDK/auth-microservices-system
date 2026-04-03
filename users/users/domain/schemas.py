@@ -47,6 +47,10 @@ class MfaSetup(BaseModel):
     provisioning_uri: str
     qr_code_base64: str
 
+class MfaVerify(BaseModel):
+    user_id: str
+    code: str
+
 class ErrorApi(BaseModel):
     error: str
     detail: list[str] | None = None

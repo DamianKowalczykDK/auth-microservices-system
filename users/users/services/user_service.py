@@ -1,5 +1,5 @@
 from users.core.exceptions import ValidationException, ApiException, NotFoundException, ConflictException
-from users.domain.schemas import UserCreate, UserLogin, MfaSetup
+from users.domain.schemas import UserCreate, UserLogin, MfaSetup, MfaVerify
 from users.domain.models import User
 from users.respositories.user_repository import UserRepository
 from users.services.email_service import EmailService
@@ -122,6 +122,15 @@ class UserService:
         user.mfa_secret = None
         await self.repository.save(user)
 
+    async  def verify_user_mfa(self, mfa_verify: MfaVerify) -> User:
+        user = await self.repository.get_by_id(mfa_verify.user_id)
+        if not user:
+            raise NotFoundException("User not found")
+        if not user.mfa_secret:
+            raise ValidationException("User has no mfa secret")
+        if not self._verify_mfa_code(user.mfa_secret, mfa_verify.code):
+            raise ValidationException("Invalid MFA code")
+        return user
 
     async def delete_user(self, identifier: str) -> None:
         user = await self.repository.get_by_identifier(identifier)
@@ -136,6 +145,9 @@ class UserService:
             raise NotFoundException("User not found")
         return user
 
+    def _verify_mfa_code(self, mfa_security: str, code: str) -> bool:
+        totp = pyotp.TOTP(mfa_security)
+        return totp.verify(code, valid_window=1)
 
     def _generate_mfa_secret(self, user: User) -> MfaSetup:
         if not user.mfa_secret:

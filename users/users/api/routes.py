@@ -6,7 +6,7 @@ from users.domain.schemas import (
     UserLogin,
     UserRead,
     UserResetPassword,
-    MfaSetup
+    MfaSetup, MfaVerify
 )
 
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -100,6 +100,15 @@ async def enable_mfa(user_id: Annotated[str, Query(description="User ID")], serv
 )
 async def disable_mfa(user_id: Annotated[str, Query(description="User ID")], service: UserServiceDep) -> None:
     await service.disable_mfa(user_id)
+
+@router.post(
+    "/mfa/verify",
+    response_model=UserRead,
+    status_code=status.HTTP_200_OK,
+    summary=f"Verify MFA for user"
+)
+async def verify_mfa(payload: MfaVerify, service: UserServiceDep) -> UserRead:
+    return await service.verify_user_mfa(payload)
 
 @router.delete(
     "/",
