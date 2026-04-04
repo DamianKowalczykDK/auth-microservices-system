@@ -57,7 +57,7 @@ class UsersClient:
             params={"user_id": user_id}
         )
     async def disable_mfa(self, user_id: str) -> UserRead:
-        return await self.http.request(
+        return await self.http.safe_request(
             "PATCH",
             f"{self.base_url}/mfa/disable",
             params={"user_id": user_id}
