@@ -1,4 +1,4 @@
-from users.core.exceptions import ValidationException, ApiException, NotFoundException, ConflictException
+from users.core.exceptions import ValidationException, NotFoundException, ConflictException
 from users.domain.schemas import UserCreate, UserLogin, MfaSetup, MfaVerify
 from users.domain.models import User
 from users.respositories.user_repository import UserRepository
@@ -112,7 +112,7 @@ class UserService:
 
         return self._generate_mfa_secret(user)
 
-    async def disable_mfa(self, user_id: str) -> None:
+    async def disable_mfa(self, user_id: str) -> User:
         user = await self.repository.get_by_id(user_id)
         if not user:
             raise NotFoundException("User not found")
@@ -120,7 +120,7 @@ class UserService:
         if not user.mfa_secret:
             raise ValidationException("User has no mfa secret")
         user.mfa_secret = None
-        await self.repository.save(user)
+        return await self.repository.save(user)
 
     async  def verify_user_mfa(self, mfa_verify: MfaVerify) -> User:
         user = await self.repository.get_by_id(mfa_verify.user_id)
@@ -132,18 +132,20 @@ class UserService:
             raise ValidationException("Invalid MFA code")
         return user
 
+    async def get_user_by_id(self, user_id: str) -> User:
+        user = await self.repository.get_by_id(user_id)
+        if not user:
+            raise NotFoundException("User not found")
+        return user
+
+
     async def delete_user(self, identifier: str) -> None:
         user = await self.repository.get_by_identifier(identifier)
         if not user:
             raise NotFoundException("User not found")
         await self.repository.delete(user)
 
-
-    async def get_user_by_id(self, user_id: str) -> User:
-        user = await self.repository.get_by_id(user_id)
-        if not user:
-            raise NotFoundException("User not found")
-        return user
+    # PRIVATE METHODS
 
     def _verify_mfa_code(self, mfa_security: str, code: str) -> bool:
         totp = pyotp.TOTP(mfa_security)
