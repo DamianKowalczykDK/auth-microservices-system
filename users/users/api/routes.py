@@ -12,7 +12,7 @@ from users.domain.schemas import (
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 @router.post(
-    "/",
+    "",
     response_model=UserRead,
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user"
@@ -36,8 +36,8 @@ async def activate_user(
 ) -> UserRead:
     return await service.activate_user(code)
 
-@router.get(
-    "/activation/resend",
+@router.post(
+    "/activation/code",
     response_model=dict[str, str],
     status_code=status.HTTP_200_OK,
     summary="Resend activation code"
@@ -95,11 +95,12 @@ async def enable_mfa(user_id: Annotated[str, Query(description="User ID")], serv
 
 @router.patch(
     "/mfa/disable",
+    response_model=UserRead,
     status_code=status.HTTP_200_OK,
     summary=f"Disable MFA for user"
 )
-async def disable_mfa(user_id: Annotated[str, Query(description="User ID")], service: UserServiceDep) -> None:
-    await service.disable_mfa(user_id)
+async def disable_mfa(user_id: Annotated[str, Query(description="User ID")], service: UserServiceDep) -> UserRead:
+    return await service.disable_mfa(user_id)
 
 @router.post(
     "/mfa/verify",
@@ -110,14 +111,6 @@ async def disable_mfa(user_id: Annotated[str, Query(description="User ID")], ser
 async def verify_mfa(payload: MfaVerify, service: UserServiceDep) -> UserRead:
     return await service.verify_user_mfa(payload)
 
-@router.delete(
-    "/",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Delete user account"
-)
-async def delete_user(identifier: Annotated[str, Query(description="Username or email")], service: UserServiceDep) -> None:
-    await service.delete_user(identifier)
-
 @router.get(
     "/",
     response_model=UserRead,
@@ -126,3 +119,11 @@ async def delete_user(identifier: Annotated[str, Query(description="Username or 
 )
 async def get_user(user_id: Annotated[str, Query(description="The database ID of the user")], service: UserServiceDep) -> UserRead:
     return await service.get_user_by_id(user_id)
+
+@router.delete(
+    "",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete user account"
+)
+async def delete_user(identifier: Annotated[str, Query(description="Username or email")], service: UserServiceDep) -> None:
+    await service.delete_user(identifier)
