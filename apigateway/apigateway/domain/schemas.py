@@ -32,6 +32,10 @@ class TokenPair(BaseModel):
     access_token: str
     refresh_token: str
 
+class TokenPayload(BaseModel):
+    sub: str
+    type: str
+
 class MfaSetup(BaseModel):
     user_id: str
     provisioning_uri: str
