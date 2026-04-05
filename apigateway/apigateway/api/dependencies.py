@@ -94,7 +94,7 @@ class RoleChecker:
     def __init__(self, allowed_roles: list[str]) -> None:
         self.allowed_roles = allowed_roles
 
-    def __call__(self, user: Annotated[UserRead, Depends(get_user_service)]) -> UserRead:
+    def __call__(self, user: CurrentUserDep) -> UserRead:
         if user.role not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
