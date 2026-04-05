@@ -1,7 +1,7 @@
 from apigateway.core.http_client import ServiceRequestClient
 from apigateway.core.config import settings
 from apigateway.domain.schemas import UserLogin, UserRead, MfaVerify, UserCreate, UserResetPassword, MfaSetup
-
+from apigateway.domain.types import UserReadDict, MfaSetupDict
 
 class UsersClient:
     def __init__(self, request_client: ServiceRequestClient) -> None:
@@ -9,7 +9,7 @@ class UsersClient:
         self.base_url = settings.USERS_SERVICE_URL
 
     async def create_user(self, payload: UserCreate) -> UserRead:
-        data = await self.http.safe_request(
+        data: UserReadDict = await self.http.safe_request(
             "POST",
             f"{self.base_url}",
             json=payload.model_dump()
@@ -17,7 +17,7 @@ class UsersClient:
         return UserRead.model_validate(data)
 
     async def activate_user(self, code: str) -> UserRead:
-        data = await self.http.safe_request(
+        data: UserReadDict = await self.http.safe_request(
             "PATCH",
             f"{self.base_url}/activation",
             params={"code": code}
@@ -32,7 +32,7 @@ class UsersClient:
         )
 
     async def login(self, payload: UserLogin) -> UserRead:
-        data =  await self.http.safe_request(
+        data: UserReadDict =  await self.http.safe_request(
             "POST",
             f"{self.base_url}/auth",
             json=payload.model_dump()
@@ -54,7 +54,7 @@ class UsersClient:
         )
 
     async def enable_mfa(self, user_id: str) -> MfaSetup:
-        data = await self.http.safe_request(
+        data: MfaSetupDict = await self.http.safe_request(
             "PATCH",
             f"{self.base_url}/mfa/enable",
             params={"user_id": user_id}
@@ -62,7 +62,7 @@ class UsersClient:
         return MfaSetup.model_validate(data)
 
     async def disable_mfa(self, user_id: str) -> UserRead:
-        data = await self.http.safe_request(
+        data: UserReadDict = await self.http.safe_request(
             "PATCH",
             f"{self.base_url}/mfa/disable",
             params={"user_id": user_id}
@@ -70,7 +70,7 @@ class UsersClient:
         return UserRead.model_validate(data)
 
     async def verify_user_mfa(self, payload: MfaVerify) -> UserRead:
-        data =  await self.http.safe_request(
+        data: UserReadDict =  await self.http.safe_request(
             "POST",
             f"{self.base_url}/mfa/verify",
             json=payload.model_dump()
@@ -78,7 +78,7 @@ class UsersClient:
         return UserRead.model_validate(data)
 
     async def get_user_by_id(self, user_id: str) -> UserRead:
-        data =  await self.http.safe_request(
+        data: UserReadDict =  await self.http.safe_request(
             "GET",
             f"{self.base_url}/",
             params={"user_id": user_id}
