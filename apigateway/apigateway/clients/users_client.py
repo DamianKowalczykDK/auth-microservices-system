@@ -9,18 +9,20 @@ class UsersClient:
         self.base_url = settings.USERS_SERVICE_URL
 
     async def create_user(self, payload: UserCreate) -> UserRead:
-        return await self.http.safe_request(
+        data = await self.http.safe_request(
             "POST",
             f"{self.base_url}",
             json=payload.model_dump()
         )
+        return UserRead.model_validate(data)
 
     async def activate_user(self, code: str) -> UserRead:
-        return await self.http.safe_request(
+        data = await self.http.safe_request(
             "PATCH",
             f"{self.base_url}/activation",
             params={"code": code}
         )
+        return UserRead.model_validate(data)
 
     async def resend_activation_code(self, identifier: str) -> dict[str, str]:
         return await self.http.safe_request(
@@ -30,11 +32,12 @@ class UsersClient:
         )
 
     async def login(self, payload: UserLogin) -> UserRead:
-        return await self.http.safe_request(
+        data =  await self.http.safe_request(
             "POST",
             f"{self.base_url}/auth",
             json=payload.model_dump()
         )
+        return UserRead.model_validate(data)
 
     async def forgot_password(self, identifier: str) -> dict[str, str]:
         return await self.http.safe_request(
@@ -51,34 +54,39 @@ class UsersClient:
         )
 
     async def enable_mfa(self, user_id: str) -> MfaSetup:
-        return await self.http.safe_request(
+        data = await self.http.safe_request(
             "PATCH",
             f"{self.base_url}/mfa/enable",
             params={"user_id": user_id}
         )
+        return MfaSetup.model_validate(data)
+
     async def disable_mfa(self, user_id: str) -> UserRead:
-        return await self.http.safe_request(
+        data = await self.http.safe_request(
             "PATCH",
             f"{self.base_url}/mfa/disable",
             params={"user_id": user_id}
         )
+        return UserRead.model_validate(data)
 
     async def verify_user_mfa(self, payload: MfaVerify) -> UserRead:
-        return await self.http.safe_request(
+        data =  await self.http.safe_request(
             "POST",
             f"{self.base_url}/mfa/verify",
             json=payload.model_dump()
         )
+        return UserRead.model_validate(data)
 
     async def get_user_by_id(self, user_id: str) -> UserRead:
-        return await self.http.safe_request(
+        data =  await self.http.safe_request(
             "GET",
             f"{self.base_url}/",
             params={"user_id": user_id}
         )
+        return UserRead.model_validate(data)
 
     async def delete_user(self, identifier: str) -> None:
-        return await self.http.request(
+         await self.http.request(
             "DELETE",
             f"{self.base_url}",
             params={"identifier": identifier}
