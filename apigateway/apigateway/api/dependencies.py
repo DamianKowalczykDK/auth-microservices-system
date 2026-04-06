@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from functools import lru_cache
 from typing import Annotated
@@ -104,3 +104,27 @@ class RoleChecker:
 
 UserOnly = Annotated[UserRead, Depends(RoleChecker(["user"]))]
 AdminOnly = Annotated[UserRead, Depends(RoleChecker(["admin"]))]
+
+def get_refresh_token(request: Request) -> TokenPayload:
+    token = request.cookies.get("refresh_token")
+
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Refresh token is invalid",
+    )
+    if not token:
+        raise credentials_exception
+
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        user_id: str = payload.get("sub")
+        token_type: str = payload.get("type")
+
+        if user_id is None or token_type != "refresh":
+            raise credentials_exception
+
+        return TokenPayload(sub=user_id, type=token_type)
+    except JWTError:
+        raise credentials_exception
+
+RefreshTokenPayloadDep = Annotated[TokenPayload, Depends(get_refresh_token)]
