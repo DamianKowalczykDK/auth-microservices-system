@@ -54,7 +54,7 @@ AccountServiceDep = Annotated[AccountService, Depends(get_account_service)]
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 AdminServiceDep = Annotated[AdminService, Depends(get_admin_service)]
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth")
 
 async def get_token_payload(token: Annotated[str, Depends(oauth2_scheme)]) -> TokenPayload:
     credentials_exception = HTTPException(
