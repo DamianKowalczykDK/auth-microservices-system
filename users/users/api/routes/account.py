@@ -1,15 +1,14 @@
 from typing import Annotated
 from fastapi import APIRouter, status, Query, BackgroundTasks
-from users.api.dependencies import UserServiceDep
+from users.api.dependencies import AccountServiceDep
 from users.domain.schemas import (
     UserCreate,
-    UserLogin,
     UserRead,
     UserResetPassword,
-    MfaSetup, MfaVerify
+    MfaSetup
 )
 
-router = APIRouter(prefix="/api/users", tags=["users"])
+router = APIRouter(prefix="/api/users", tags=["Account"])
 
 @router.post(
     "",
@@ -19,7 +18,7 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 )
 async def create_user(
         payload: UserCreate,
-        service: UserServiceDep,
+        service: AccountServiceDep,
         bg_tasks: BackgroundTasks
 ) -> UserRead:
     return await service.create_user(payload, bg_tasks)
@@ -32,7 +31,7 @@ async def create_user(
 )
 async def activate_user(
         code: Annotated[str, Query(description="The Unique activation code")],
-        service: UserServiceDep
+        service: AccountServiceDep
 ) -> UserRead:
     return await service.activate_user(code)
 
@@ -44,20 +43,11 @@ async def activate_user(
 )
 async def resend_activation_code(
         identifier: Annotated[str, Query(description="Username or email")],
-        service: UserServiceDep,
+        service: AccountServiceDep,
         bg_tasks: BackgroundTasks
 ) -> dict[str, str]:
     user = await service.resend_activation_code(identifier, bg_tasks)
     return {"message": f"{user.username}'s activation code has been sent."}
-
-@router.post(
-    "/auth",
-    response_model=UserRead,
-    status_code=status.HTTP_200_OK,
-    summary="Verify user credentials"
-)
-async def login_user(payload: UserLogin, service: UserServiceDep) -> UserRead:
-    return await service.verify_credentials(payload)
 
 @router.post(
     "/password/forgot",
@@ -67,7 +57,7 @@ async def login_user(payload: UserLogin, service: UserServiceDep) -> UserRead:
 )
 async def forgot_password(
         identifier: Annotated[str, Query(description="Username or email")],
-        service: UserServiceDep,
+        service: AccountServiceDep,
         bg_tasks: BackgroundTasks
 ) -> dict[str, str]:
     await service.forgot_password(identifier, bg_tasks)
@@ -80,7 +70,7 @@ async def forgot_password(
     status_code=status.HTTP_200_OK,
     summary="Reset password"
 )
-async def reset_password(payload: UserResetPassword, service: UserServiceDep) -> dict[str, str]:
+async def reset_password(payload: UserResetPassword, service: AccountServiceDep) -> dict[str, str]:
     await service.reset_password(payload.token, payload.new_password)
     return {"message": "Password has been reset."}
 
@@ -90,7 +80,7 @@ async def reset_password(payload: UserResetPassword, service: UserServiceDep) ->
     status_code=status.HTTP_200_OK,
     summary="Initialize MFA for user"
 )
-async def enable_mfa(user_id: Annotated[str, Query(description="User ID")], service: UserServiceDep) -> MfaSetup:
+async def enable_mfa(user_id: Annotated[str, Query(description="User ID")], service: AccountServiceDep) -> MfaSetup:
     return await service.enable_mfa(user_id)
 
 @router.patch(
@@ -99,17 +89,8 @@ async def enable_mfa(user_id: Annotated[str, Query(description="User ID")], serv
     status_code=status.HTTP_200_OK,
     summary=f"Disable MFA for user"
 )
-async def disable_mfa(user_id: Annotated[str, Query(description="User ID")], service: UserServiceDep) -> UserRead:
+async def disable_mfa(user_id: Annotated[str, Query(description="User ID")], service: AccountServiceDep) -> UserRead:
     return await service.disable_mfa(user_id)
-
-@router.post(
-    "/mfa/verify",
-    response_model=UserRead,
-    status_code=status.HTTP_200_OK,
-    summary=f"Verify MFA for user"
-)
-async def verify_mfa(payload: MfaVerify, service: UserServiceDep) -> UserRead:
-    return await service.verify_user_mfa(payload)
 
 @router.get(
     "/",
@@ -117,7 +98,10 @@ async def verify_mfa(payload: MfaVerify, service: UserServiceDep) -> UserRead:
     status_code=status.HTTP_200_OK,
     summary="Get user by id"
 )
-async def get_user(user_id: Annotated[str, Query(description="The database ID of the user")], service: UserServiceDep) -> UserRead:
+async def get_user(
+        user_id: Annotated[str, Query(description="The database ID of the user")],
+        service: AccountServiceDep
+) -> UserRead:
     return await service.get_user_by_id(user_id)
 
 @router.delete(
@@ -125,5 +109,8 @@ async def get_user(user_id: Annotated[str, Query(description="The database ID of
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete user account"
 )
-async def delete_user(identifier: Annotated[str, Query(description="Username or email")], service: UserServiceDep) -> None:
+async def delete_user(
+        identifier: Annotated[str, Query(description="Username or email")]
+        , service: AccountServiceDep
+) -> None:
     await service.delete_user(identifier)
