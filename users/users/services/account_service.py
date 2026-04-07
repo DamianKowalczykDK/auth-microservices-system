@@ -5,7 +5,8 @@ import pyotp
 import qrcode  # type: ignore
 from datetime import datetime, timedelta, timezone
 from fastapi import BackgroundTasks
-from users.core.config import settings
+
+from users.core.config import Settings
 from users.core.exceptions import ValidationException, NotFoundException, ConflictException
 from users.core.security import get_password_hash
 from users.domain.models import User
@@ -15,9 +16,10 @@ from users.services.email_service import EmailService
 
 
 class AccountService:
-    def __init__(self, repository: UserRepository, email: EmailService) -> None:
+    def __init__(self, repository: UserRepository, email: EmailService, settings: Settings) -> None:
         self.repository = repository
         self.email = email
+        self.settings = settings
 
     async def create_user(self, user_create: UserCreate, bg_tasks: BackgroundTasks) -> User:
 
@@ -45,7 +47,7 @@ class AccountService:
         if not user:
             raise NotFoundException("Invalid activation code")
 
-        expiration_minutes = settings.USER_ACTIVATION_EXPIRATION_MINUTES
+        expiration_minutes = self.settings.USER_ACTIVATION_EXPIRATION_MINUTES
         now_utc = datetime.now(timezone.utc)
 
         if user.activation_created_at + timedelta(minutes=expiration_minutes) < now_utc:
@@ -74,7 +76,7 @@ class AccountService:
         if not user:
             return
 
-        user.set_reset_password_token(settings.RESET_PASSWORD_EXPIRATION_MINUTES)
+        user.set_reset_password_token(self.settings.RESET_PASSWORD_EXPIRATION_MINUTES)
         await self.repository.save(user)
 
         html = f"<p>Reset token: {user.reset_password_token}</p>"

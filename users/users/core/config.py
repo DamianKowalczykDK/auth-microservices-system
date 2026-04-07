@@ -27,6 +27,4 @@ class Settings(BaseSettings):
     MAIL_FROM_NAME: str
 
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-
-settings = Settings() #type: ignore
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", frozen=True)
