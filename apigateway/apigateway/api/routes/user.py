@@ -1,5 +1,4 @@
-from typing import Annotated
-from fastapi import APIRouter, status, Query
+from fastapi import APIRouter, status
 from apigateway.api.dependencies import UserOnly, UserServiceDep, CurrentUserDep
 from apigateway.domain.schemas import MfaSetup, UserRead
 

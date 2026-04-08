@@ -1,11 +1,13 @@
 from fastapi import HTTPException
 from apigateway.clients.users_client import UsersClient
-from apigateway.domain.schemas import UserLogin, TokenPair, TokenPairResponse, MfaRequired, MfaVerify, TokenPayload
+from apigateway.core.config import Settings
+from apigateway.domain.schemas import UserLogin, TokenPair, MfaRequired, MfaVerify, TokenPayload
 from apigateway.core.security import create_access_token, create_refresh_token
 
 class AuthService:
-    def __init__(self, users_client: UsersClient) -> None:
+    def __init__(self, users_client: UsersClient, settings: Settings) -> None:
         self.users_client = users_client
+        self.settings = settings
 
     async def login(self, user_login: UserLogin) -> TokenPair | MfaRequired:
         user = await self.users_client.login(user_login)
@@ -31,8 +33,11 @@ class AuthService:
         return self._generate_tokens(user.id)
 
     def _generate_tokens(self, user_id: str) -> TokenPair:
-        access_token = create_access_token(user_id)
-        refresh_token = create_refresh_token(user_id)
+        secret = self.settings.JWT_SECRET_KEY
+        algorithm = self.settings.JWT_ALGORITHM
+
+        access_token = create_access_token(user_id, secret, algorithm, self.settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        refresh_token = create_refresh_token(user_id, secret, algorithm, self.settings.REFRESH_TOKEN_EXPIRE_MINUTES)
         return TokenPair(access_token=access_token, refresh_token=refresh_token)
 
 

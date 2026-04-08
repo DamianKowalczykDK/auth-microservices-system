@@ -1,10 +1,10 @@
 from apigateway.core.http_client import ServiceRequestClient
-from apigateway.core.config import settings
+from apigateway.core.config import Settings
 from apigateway.domain.schemas import UserLogin, UserRead, MfaVerify, UserCreate, UserResetPassword, MfaSetup
 from apigateway.domain.types import UserReadDict, MfaSetupDict
 
 class UsersClient:
-    def __init__(self, request_client: ServiceRequestClient) -> None:
+    def __init__(self, request_client: ServiceRequestClient, settings: Settings) -> None:
         self.http = request_client
         self.base_url = settings.USERS_SERVICE_URL
 

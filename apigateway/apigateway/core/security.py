@@ -1,15 +1,20 @@
 from datetime import datetime, timedelta, timezone
-from apigateway.core.config import settings
 from jose import jwt # type: ignore
 
-def create_access_token(subject: str) -> str:
-    return _create_token(settings.ACCESS_TOKEN_EXPIRE_MINUTES, subject, token_type="access")
+def create_access_token(subject: str, secret_key: str, algorithm: str, expire_minutes:int) -> str:
+    return _create_token(subject, "access", secret_key, algorithm, expire_minutes)
 
-def create_refresh_token(subject: str) -> str:
-    return _create_token(settings.REFRESH_TOKEN_EXPIRE_MINUTES, subject, token_type="refresh")
+def create_refresh_token(subject: str, secret_key: str, algorithm: str, expire_minutes:int) -> str:
+    return _create_token(subject, "refresh",secret_key, algorithm, expire_minutes)
 
 
-def _create_token(expire_minutes: int, subject: str, token_type: str) -> str:
+def _create_token(
+        subject: str,
+        token_type: str,
+        secret_key: str,
+        algorithm: str,
+        expire_minutes: int,
+) -> str:
     utc_now = datetime.now(timezone.utc)
     expire = utc_now + timedelta(minutes=expire_minutes)
     to_encode = {
@@ -18,5 +23,5 @@ def _create_token(expire_minutes: int, subject: str, token_type: str) -> str:
         "exp": expire,
         "iat": utc_now
     }
-    return jwt.encode(to_encode, settings.JWT_SECRET_KEY, settings.JWT_ALGORITHM)
+    return jwt.encode(to_encode, secret_key, algorithm)
 

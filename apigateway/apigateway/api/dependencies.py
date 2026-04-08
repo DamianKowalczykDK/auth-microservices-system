@@ -4,7 +4,7 @@ from functools import lru_cache
 from typing import Annotated
 from jose import jwt, JWTError #type: ignore
 from apigateway.clients.users_client import UsersClient
-from apigateway.core.config import settings
+from apigateway.core.config import Settings
 from apigateway.core.http_client import ServiceRequestClient
 from apigateway.domain.schemas import TokenPayload, UserRead
 from apigateway.services.account_service import AccountService
@@ -13,9 +13,14 @@ from apigateway.services.auth_service import AuthService
 from apigateway.services.user_service import UserService
 import httpx
 
+@lru_cache
+def get_settings() -> Settings:
+    return Settings() #type: ignore
+
+SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 @lru_cache()
-def get_httpx_client() -> httpx.AsyncClient:
+def get_httpx_client(settings: SettingsDep) -> httpx.AsyncClient:
     return httpx.AsyncClient(timeout=settings.HTTP_TIMEOUT)
 
 HttpClientDep = Annotated[httpx.AsyncClient, Depends(get_httpx_client)]
@@ -27,14 +32,14 @@ def get_service_request_client(client: HttpClientDep) -> ServiceRequestClient:
 ServiceRequestClientDep = Annotated[ServiceRequestClient, Depends(get_service_request_client)]
 
 @lru_cache()
-def get_users_client(request_client: ServiceRequestClientDep) -> UsersClient:
-    return UsersClient(request_client=request_client)
+def get_users_client(request_client: ServiceRequestClientDep, settings: SettingsDep) -> UsersClient:
+    return UsersClient(request_client=request_client, settings=settings)
 
 UsersClientDep = Annotated[UsersClient, Depends(get_users_client)]
 
 @lru_cache()
-def get_auth_service(users_client: UsersClientDep) -> AuthService:
-    return AuthService(users_client)
+def get_auth_service(users_client: UsersClientDep, settings: SettingsDep) -> AuthService:
+    return AuthService(users_client=users_client, settings=settings)
 
 @lru_cache()
 def get_account_service(users_client: UsersClientDep) -> AccountService:
@@ -56,7 +61,7 @@ AdminServiceDep = Annotated[AdminService, Depends(get_admin_service)]
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth")
 
-async def get_token_payload(token: Annotated[str, Depends(oauth2_scheme)]) -> TokenPayload:
+async def get_token_payload(token: Annotated[str, Depends(oauth2_scheme)], settings: SettingsDep) -> TokenPayload:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -105,7 +110,7 @@ class RoleChecker:
 UserOnly = Annotated[UserRead, Depends(RoleChecker(["user"]))]
 AdminOnly = Annotated[UserRead, Depends(RoleChecker(["admin"]))]
 
-def get_refresh_token(request: Request) -> TokenPayload:
+def get_refresh_token(request: Request, settings: SettingsDep) -> TokenPayload:
     token = request.cookies.get("refresh_token")
 
     credentials_exception = HTTPException(
