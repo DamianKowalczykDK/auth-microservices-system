@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration MFA</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f7f6;
+        }
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+        }
+        h2 { color: #333; }
+        p { color: #666; font-size: 0.9rem; line-height: 1.5; }
+        .qr-container {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #eee;
+            background: #fff;
+            display: inline-block;
+        }
+        img {
+            display: block;
+            width: 250px;
+            height: 250px;
+        }
+        .secret-box {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            word-break: break-all;
+            font-size: 0.8rem;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Secure your account</h2>
+    <p>Scan the QR code below in the app <strong>Google Authenticator</strong> or <strong>Microsoft Authenticator</strong>, to enable two-step login.</p>
+
+    <div class="qr-container">
+        <img id="qr-code" src="" alt="Ładowanie kodu QR...">
+    </div>
+
+    <p>If you can't scan the code, use this key:</p>
+    <div id="uri-display" class="secret-box">Loading...</div>
+</div>
+
+<script>
+    const apiResponse = {
+    "user_id": "69d55658c1316ae96cccba42",
+    "provisioning_uri": "otpauth://totp/FastAPI%20Security:damiankowalczyk3688%40gmail.com?secret=P2YOS4POWWCBCU7R7TYT6RAFGBEVDPWU&issuer=FastAPI%20Security",
+    "qr_code_base64": "iVBORw0KGgoAAAANSUhEUgAAAk4AAAJOAQAAAABpIrVYAAAFN0lEQVR4nO2dUarzRgyFj2pDHx3oArIUZwdd0uXuzF5KFlCYPF6wUR9mNNIkgb/QuHjomQdzM3Y+bFB0z2gkWRQfGvtvnyIBRBFFFFFEEUUUUUQRRRRRRP2vUauUATzGPCVy2QXrZReRCyA3xEM5IZLPHnNXRBH1URRUVVWXSVVVN+iCQTGnQXUBoJoAYFIFpq38Nee57em753xAooh6Re3mpKef4tG/VFVuMLtfMKhqAnSZtMQtVxE59K6IIupY1KDZshcA+n3dIF/3EZjvIlgvQBY72cH/d3dFFFH/eozPE/N93ATTX4J5AQQQYL1AgGkrF6+3AW82pc75gEQR5eNZt6tq0e35RL5kQ7wk2Rx1O1E9oh4iIjLmWIt+X4t4z2vTrF+wFyWzXstcDsncjrsroog6wLf7WAAAk2oJx6D48TyXl6r1Yxz07USdHfU2Aml2P2hYjM4JwNycyD+ImdZOVB8os3bAlHkaqvFHoV7GtMG0fFT6tHaiOkAFJZM1+pwGDVtHmsyPx4VsuS7KHlo7UadHRd+uaWjs2Q/p/e5S/i3Q2onqBBV0e7TsyRR8tuxJtczVQ0kp8PUqrZ2os6OamEyK3tvFe1Y386uIsf8BtHaiukBV325u3eXMAtQgDMKekkl7VQBUMkT1g2p0u4VZTKEU1ZIlTp2zNexG305Un6hJVSSnrP9eouwl1D5o3kGd72Px/AsGxSoj5PYYX1EfvCuiiDrEt9es9knVVIu5+hCd0bJoDb8FKhmiOkG9yQqr69AgXbyaYyvfY7ydqO5Qr7o9FS9vul21eHQAlkBTDZ2+naiOUDHeHvdSPSy5AdmoARQRo/ViZg4Q1RGqenSgOulyJmqVKGKscA8A4Ek1tHaizo6K8XYfOfKuqk1B3qAxNOkX07cT1QcqxmRigoDa5mmqtUtWsGrh9xrKobUT1RlqFzsApanMY4TcgFi7VAqYBtXFLtbvy3F3RRRRx+TJmLtu5oqmMd0+hyWtBy7p24nqAhXijh49R40sFtWCmudr6Y/N8pXWTlQXqFiE5Buq2a174V6qDt6+YSEaxtuJ6gcVI5A1/mIZv5vVa2STtxVp3HGyIlZaO1HdoNar6Zc5AfJ1Lx3vRC676AJA5PpT17AiwENEl+mHnfGI6gbVZoXF4ruwW7p4soztqlrddmirdM4HJIooH7a7VIPuta9G0Spm2aGyyT8qV6lE9YMKe6lBvHsV0zJtTSoNELJjmCdDVFeoNuPXAuwLAG8YZm49HkLOO307UZ2gmrpUjzGmpqVG9fIAPDDTNBajtRN1flS7uxQbJ1mejCfG1BVpAgAMjEAS1ReqbXFXt5hsznrMDLXNhoYDuycR1RUqrlJLYKaIGD8LWOZj+B9QdTt9O1G9oKKSKTGZpyK9GGoPefD1VWP07UT1gmoyB7T69lqzF1euFmD3X0DTDvWcD0gUUT6KkkHzchm11DB35haf9ALsOmjtRPWBevNujhqdAaoy9zo+/xnYgbqdqL5Q/i7sOe0CTD85FwxrfhcTgPJqSTSlTA8/e+4HJIoovOmelAAAHnL0jkpNU9/q26lkiOoF1fQcmFrVMsWeA27ysedArd6jtRN1ftSrtXvRBjx9YIhCfWk9P2MyRHWCeuvbY75jAkITsVm9I2T1/LR2ovpA1Y7UgwLYATz+UMG0j9YLbxs1N9wIdUreKG8bdf3z43dFFFFHoEK8PX8Mb+lwoQ7g+W0F+RshDEnfTtTZUaK/vuafjf2cD0gUUUQRRRRRRBFFFFFEEUVUR6i/AWx1Fq1VSxotAAAAAElFTkSuQmCC"
+}
+
+    const qrImg = document.getElementById('qr-code');
+    const uriBox = document.getElementById('uri-display');
+
+    qrImg.src = "data:image/png;base64," + apiResponse.qr_code_base64;
+
+    uriBox.innerText = apiResponse.provisioning_uri;
+</script>
+
+</body>
+</html>
