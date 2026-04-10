@@ -1,0 +1,77 @@
+services:
+
+  users:
+    build:
+      context: ./users
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - ./users:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - webapp-network
+
+  apigateway:
+   build:
+     context: ./apigateway
+     dockerfile: Dockerfile
+   restart: always
+   volumes:
+     - ./apigateway:/app
+   healthcheck:
+     test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+     interval: 10s
+     timeout: 5s
+     retries: 5
+     start_period: 5s
+   networks:
+     - webapp-network
+
+  nginx:
+    image: nginx:latest
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      users:
+        condition: service_healthy
+      apigateway:
+       condition: service_healthy
+    networks:
+      - webapp-network
+
+  mongo:
+    image: mongo:latest
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGODB_DB}
+    volumes:
+      - mongo:/data/db
+    healthcheck:
+      test: >
+        mongosh --quiet --username $$MONGO_INITDB_ROOT_USERNAME --password $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval "db.adminCommand('ping')"
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - webapp-network
+
+networks:
+  webapp-network:
+
+volumes:
+  mongo:  
