@@ -114,8 +114,9 @@ class AccountService:
         if not user:
             raise NotFoundException("User not found")
 
-        if not user.mfa_secret:
-            raise ValidationException("User has no mfa secret")
+        if user.mfa_secret is None:
+            return user
+
         user.mfa_secret = None
         return await self.repository.save(user)
 
