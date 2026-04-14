@@ -7,12 +7,12 @@ authors = [
 ]
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
+
 dependencies = [
     "fastapi (>=0.128.0,<0.129.0)",
     "uvicorn (>=0.40.0,<0.41.0)",
-    "mypy (>=1.19.1,<2.0.0)",
-    "motor (>=3.7.1,<4.0.0)",
-    "beanie (>=2.0.1,<3.0.0)",
+    "motor (>=3.5.1,<3.6.0)",
+    "beanie (>=1.25.0,<2.0.0)",
     "pydantic-settings (>=2.12.0,<3.0.0)",
     "passlib[argon2] (>=1.7.4,<2.0.0)",
     "fastapi-mail (>=1.6.1,<2.0.0)",
@@ -22,7 +22,44 @@ dependencies = [
     "email-validator (>=2.3.0,<3.0.0)",
 ]
 
+[tool.poetry.group.dev.dependencies]
+mypy = ">=1.19.1,<2.0.0"
+pytest = "^8.3.0"
+pytest-asyncio = "^0.25.0"
+pytest-cov = "^6.0.0"
+httpx = "^0.28.0"
+testcontainers = "^4.9.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+
+minversion = "6.0"
+
+addopts = """
+    -ra
+    -q
+    --cov=users
+    --cov-report=term-missing
+    --cov-report=html
+    --cov-fail-under=100
+"""
+
+testpaths = ["tests"]
+
+pythonpath = "."
+
+asyncio_mode = "auto"
+
+asyncio_default_fixture_loop_scope = "session"
+
+filterwarnings = [
+    "ignore::pydantic.warnings.PydanticDeprecatedSince211",
+    "ignore::pytest.PytestDeprecationWarning",
+    "ignore::DeprecationWarning:testcontainers.*:",
+    "ignore::DeprecationWarning:passlib.*:",
+    "ignore:The event_loop fixture provided by pytest-asyncio has been redefined:DeprecationWarning",
+    "ignore:init_test_db is asynchronous and explicitly requests the \"event_loop\" fixture:pytest.PytestDeprecationWarning"
+]
