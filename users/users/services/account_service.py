@@ -5,7 +5,6 @@ import pyotp
 import qrcode  # type: ignore
 from datetime import datetime, timedelta, timezone
 from fastapi import BackgroundTasks
-
 from users.core.config import Settings
 from users.core.exceptions import ValidationException, NotFoundException, ConflictException
 from users.core.security import get_password_hash
@@ -16,13 +15,41 @@ from users.services.email_service import EmailService
 
 
 class AccountService:
+    """
+    Service layer responsible for user account-related business logic.
+
+    This service handles user registration, activation, authentication-related
+    flows (password reset), MFA management, and account deletion. It coordinates
+    between the repository layer and external services such as email delivery.
+    """
+
     def __init__(self, repository: UserRepository, email: EmailService, settings: Settings) -> None:
+        """
+        Initialize AccountService.
+
+        Args:
+            repository (UserRepository): Repository for user persistence operations.
+            email (EmailService): Service responsible for sending emails.
+            settings (Settings): Application configuration settings.
+        """
         self.repository = repository
         self.email = email
         self.settings = settings
 
     async def create_user(self, user_create: UserCreate, bg_tasks: BackgroundTasks) -> User:
+        """
+        Create a new user account and send activation email.
 
+        Args:
+            user_create (UserCreate): User registration data.
+            bg_tasks (BackgroundTasks): FastAPI background task handler.
+
+        Returns:
+            User: Newly created user.
+
+        Raises:
+            ConflictException: If email or username already exists.
+        """
         if await self.repository.get_by_email(user_create.email):
             raise ConflictException("Email already exists")
 
@@ -43,6 +70,19 @@ class AccountService:
         return created_user
 
     async def activate_user(self, code: str) -> User:
+        """
+        Activate a user account using an activation code.
+
+        Args:
+            code (str): Activation code sent to the user.
+
+        Returns:
+            User: Activated user.
+
+        Raises:
+            NotFoundException: If activation code is invalid.
+            ValidationException: If activation code has expired.
+        """
         user = await self.repository.get_by_activation_code(code)
         if not user:
             raise NotFoundException("Invalid activation code")
@@ -57,6 +97,20 @@ class AccountService:
         return await self.repository.save(user)
 
     async def resend_activation_code(self, identifier: str, bg_tasks: BackgroundTasks) -> User:
+        """
+        Regenerate and resend activation code to a user.
+
+        Args:
+            identifier (str): Username or email.
+            bg_tasks (BackgroundTasks): FastAPI background task handler.
+
+        Returns:
+            User: Updated user with new activation code.
+
+        Raises:
+            NotFoundException: If user does not exist.
+            ValidationException: If user is already activated.
+        """
         user = await self.repository.get_by_identifier(identifier)
         if not user:
             raise NotFoundException("User not found")
@@ -72,6 +126,13 @@ class AccountService:
         return user
 
     async def forgot_password(self, identifier: str, bg_tasks: BackgroundTasks) -> None:
+        """
+        Initiate password reset process by generating a reset token.
+
+        Args:
+            identifier (str): Username or email.
+            bg_tasks (BackgroundTasks): FastAPI background task handler.
+        """
         user = await self.repository.get_active_by_identifier(identifier)
         if not user:
             return
@@ -83,8 +144,18 @@ class AccountService:
 
         bg_tasks.add_task(self.email.send_email, user.email, "Password Reset", html)
 
-
     async def reset_password(self, token: str, new_password: str) -> None:
+        """
+        Reset a user's password using a valid reset token.
+
+        Args:
+            token (str): Password reset token.
+            new_password (str): New password.
+
+        Raises:
+            NotFoundException: If token is invalid.
+            ValidationException: If token has expired.
+        """
         user = await self.repository.get_by_reset_token(token)
         if not user or not user.reset_password_expires_at:
             raise NotFoundException("Invalid token")
@@ -99,6 +170,15 @@ class AccountService:
         await self.repository.save(user)
 
     async def enable_mfa(self, user_id: str) -> MfaSetup:
+        """
+        Enable multi-factor authentication (MFA) for a user.
+
+        Args:
+            user_id (str): User ID.
+
+        Returns:
+            MfaSetup: MFA provisioning data (QR code + URI).
+        """
         user = await self.repository.get_by_id(user_id)
         if not user:
             raise NotFoundException("User not found")
@@ -110,6 +190,15 @@ class AccountService:
         return self._generate_mfa_secret(user)
 
     async def disable_mfa(self, user_id: str) -> User:
+        """
+        Disable MFA for a user.
+
+        Args:
+            user_id (str): User ID.
+
+        Returns:
+            User: Updated user without MFA enabled.
+        """
         user = await self.repository.get_by_id(user_id)
         if not user:
             raise NotFoundException("User not found")
@@ -121,22 +210,54 @@ class AccountService:
         return await self.repository.save(user)
 
     async def get_user_by_id(self, user_id: str) -> User:
+        """
+        Retrieve a user by ID.
+
+        Args:
+            user_id (str): User ID.
+
+        Returns:
+            User: Found user.
+
+        Raises:
+            NotFoundException: If user does not exist.
+        """
         user = await self.repository.get_by_id(user_id)
         if not user:
             raise NotFoundException("User not found")
         return user
 
-
     async def delete_user(self, identifier: str) -> None:
+        """
+        Delete a user account by username or email.
+
+        Args:
+            identifier (str): Username or email.
+
+        Raises:
+            NotFoundException: If user does not exist.
+        """
         user = await self.repository.get_by_identifier(identifier)
         if not user:
             raise NotFoundException("User not found")
         await self.repository.delete(user)
 
-
     def _generate_mfa_secret(self, user: User) -> MfaSetup:
+        """
+        Generate MFA provisioning data including QR code.
+
+        Args:
+            user (User): User instance with MFA secret.
+
+        Returns:
+            MfaSetup: Provisioning URI and QR code in base64 format.
+
+        Raises:
+            ValidationException: If MFA secret is not initialized.
+        """
         if not user.mfa_secret:
             raise ValidationException("Mfa secret not initialized")
+
         totp = pyotp.TOTP(user.mfa_secret)
 
         provisioning_uri = totp.provisioning_uri(
@@ -159,10 +280,3 @@ class AccountService:
             provisioning_uri=provisioning_uri,
             qr_code_base64=qr_code_base64
         )
-
-
-
-
-
-
-

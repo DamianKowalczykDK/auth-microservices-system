@@ -10,6 +10,7 @@ from users.domain.schemas import (
 
 router = APIRouter(prefix="/api/users", tags=["Account"])
 
+
 @router.post(
     "",
     response_model=UserRead,
@@ -21,7 +22,22 @@ async def create_user(
         service: AccountServiceDep,
         bg_tasks: BackgroundTasks
 ) -> UserRead:
+    """
+    Create a new user account.
+
+    This endpoint registers a new user, stores them in the database,
+    and triggers an activation email via background task.
+
+    Args:
+        payload (UserCreate): User registration data.
+        service (AccountServiceDep): Account service dependency.
+        bg_tasks (BackgroundTasks): FastAPI background task manager.
+
+    Returns:
+        UserRead: Created user data.
+    """
     return await service.create_user(payload, bg_tasks)
+
 
 @router.patch(
     "/activation",
@@ -33,7 +49,18 @@ async def activate_user(
         code: Annotated[str, Query(description="The Unique activation code")],
         service: AccountServiceDep
 ) -> UserRead:
+    """
+    Activate a user account using an activation code.
+
+    Args:
+        code (str): Activation code provided to the user.
+        service (AccountServiceDep): Account service dependency.
+
+    Returns:
+        UserRead: Activated user data.
+    """
     return await service.activate_user(code)
+
 
 @router.post(
     "/activation/code",
@@ -46,8 +73,20 @@ async def resend_activation_code(
         service: AccountServiceDep,
         bg_tasks: BackgroundTasks
 ) -> dict[str, str]:
+    """
+    Resend activation code to a user.
+
+    Args:
+        identifier (str): Username or email.
+        service (AccountServiceDep): Account service dependency.
+        bg_tasks (BackgroundTasks): Background task manager.
+
+    Returns:
+        dict[str, str]: Confirmation message.
+    """
     user = await service.resend_activation_code(identifier, bg_tasks)
     return {"message": f"{user.username}'s activation code has been sent."}
+
 
 @router.post(
     "/password/forgot",
@@ -60,6 +99,17 @@ async def forgot_password(
         service: AccountServiceDep,
         bg_tasks: BackgroundTasks
 ) -> dict[str, str]:
+    """
+    Trigger password reset process.
+
+    Args:
+        identifier (str): Username or email.
+        service (AccountServiceDep): Account service dependency.
+        bg_tasks (BackgroundTasks): Background task manager.
+
+    Returns:
+        dict[str, str]: Confirmation message.
+    """
     await service.forgot_password(identifier, bg_tasks)
     return {"message": "If the account exist email has been sent."}
 
@@ -71,8 +121,19 @@ async def forgot_password(
     summary="Reset password"
 )
 async def reset_password(payload: UserResetPassword, service: AccountServiceDep) -> dict[str, str]:
+    """
+    Reset user password using a reset token.
+
+    Args:
+        payload (UserResetPassword): Reset token and new password.
+        service (AccountServiceDep): Account service dependency.
+
+    Returns:
+        dict[str, str]: Confirmation message.
+    """
     await service.reset_password(payload.token, payload.new_password)
     return {"message": "Password has been reset."}
+
 
 @router.patch(
     "/mfa/enable",
@@ -80,17 +141,45 @@ async def reset_password(payload: UserResetPassword, service: AccountServiceDep)
     status_code=status.HTTP_200_OK,
     summary="Initialize MFA for user"
 )
-async def enable_mfa(user_id: Annotated[str, Query(description="User ID")], service: AccountServiceDep) -> MfaSetup:
+async def enable_mfa(
+        user_id: Annotated[str, Query(description="User ID")],
+        service: AccountServiceDep
+) -> MfaSetup:
+    """
+    Enable multi-factor authentication for a user.
+
+    Args:
+        user_id (str): User ID.
+        service (AccountServiceDep): Account service dependency.
+
+    Returns:
+        MfaSetup: MFA setup data (QR code + provisioning URI).
+    """
     return await service.enable_mfa(user_id)
+
 
 @router.patch(
     "/mfa/disable",
     response_model=UserRead,
     status_code=status.HTTP_200_OK,
-    summary=f"Disable MFA for user"
+    summary="Disable MFA for user"
 )
-async def disable_mfa(user_id: Annotated[str, Query(description="User ID")], service: AccountServiceDep) -> UserRead:
+async def disable_mfa(
+        user_id: Annotated[str, Query(description="User ID")],
+        service: AccountServiceDep
+) -> UserRead:
+    """
+    Disable multi-factor authentication for a user.
+
+    Args:
+        user_id (str): User ID.
+        service (AccountServiceDep): Account service dependency.
+
+    Returns:
+        UserRead: Updated user data.
+    """
     return await service.disable_mfa(user_id)
+
 
 @router.get(
     "/",
@@ -102,7 +191,18 @@ async def get_user(
         user_id: Annotated[str, Query(description="The database ID of the user")],
         service: AccountServiceDep
 ) -> UserRead:
+    """
+    Retrieve a user by ID.
+
+    Args:
+        user_id (str): User ID.
+        service (AccountServiceDep): Account service dependency.
+
+    Returns:
+        UserRead: User data.
+    """
     return await service.get_user_by_id(user_id)
+
 
 @router.delete(
     "",
@@ -110,7 +210,17 @@ async def get_user(
     summary="Delete user account"
 )
 async def delete_user(
-        identifier: Annotated[str, Query(description="Username or email")]
-        , service: AccountServiceDep
+        identifier: Annotated[str, Query(description="Username or email")],
+        service: AccountServiceDep
 ) -> None:
+    """
+    Delete a user account by username or email.
+
+    Args:
+        identifier (str): Username or email.
+        service (AccountServiceDep): Account service dependency.
+
+    Returns:
+        None
+    """
     await service.delete_user(identifier)
