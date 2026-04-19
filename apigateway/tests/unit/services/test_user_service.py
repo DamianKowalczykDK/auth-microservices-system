@@ -1,5 +1,4 @@
 from unittest.mock import MagicMock, AsyncMock
-from apigateway.clients.users_client import UsersClient
 from apigateway.domain.schemas import UserRead
 from apigateway.services.user_service import UserService
 
