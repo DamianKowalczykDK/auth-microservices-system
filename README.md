@@ -197,10 +197,10 @@ Each service includes:
 ---
 
 ### 1. Environment Setup
-* **Copy .env_example to .env and adjust values:** 
+* **Copy .env.example to .env and adjust values:** 
 
 ```bash
-cp .env_example .env
+cp .env.example .env
 ```
 ### 2. Start the Platform
 

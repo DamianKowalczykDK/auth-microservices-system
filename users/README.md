@@ -1,4 +1,4 @@
-# 🚀 Users Service (Microservice)
+# 🚀 Users Microservice
 
 [![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Production%20Ready-009688.svg)](https://fastapi.tiangolo.com/)
@@ -107,10 +107,10 @@ Structure:
 ## 🚀 Getting Started
 
 ### 1. Environment setup
-* **Copy .env_example to .env and adjust values:** 
+* **Copy .env.example to .env and adjust values:** 
 
 ```bash
-cp .env_example .env
+cp .env.example .env
 ```
 
 ### Poetry
