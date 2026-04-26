@@ -5,8 +5,7 @@ services:
       context: ./users
       dockerfile: Dockerfile
     restart: always
-    volumes:
-      - ./users:/app
+
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 10s
@@ -24,8 +23,7 @@ services:
      context: ./apigateway
      dockerfile: Dockerfile
    restart: always
-   volumes:
-     - ./apigateway:/app
+
    healthcheck:
      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
      interval: 10s
@@ -59,8 +57,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
       MONGO_INITDB_DATABASE: ${MONGODB_DB}
-    volumes:
-      - mongo:/data/db
+
     healthcheck:
       test: >
         mongosh --quiet --username $$MONGO_INITDB_ROOT_USERNAME --password $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval "db.adminCommand('ping')"
